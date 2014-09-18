@@ -20,9 +20,14 @@ public class Attribute {
         this.attributeFrequency = frequency;
     }
     
-    public int getFrequency(String attributeValue, String targetAttributeValue){
+    public double getFrequency(String attributeValue, String targetAttributeValue){
         return this.attributeFrequency.get(attributeValue).getFrequency(targetAttributeValue);
     }
+    
+    public double getDifferentValuesCount(){
+        return this.attributeFrequency.size();
+    }
+            
     
     public void print(){
         System.out.println(attributeName);

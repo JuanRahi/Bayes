@@ -21,10 +21,11 @@ public class NaiveBayes {
      */
     public static void main(String[] args) {
         try {
-            String path = "diabetic_data(200).csv";
+            String path = "diabetic_data(2000).csv";
             String separator = ",";     
             Algorithm naiveBayes = new Algorithm();        
             naiveBayes.run(path, separator);
+            naiveBayes.evaluate(path, separator);
         } catch (IOException ex) {
             Logger.getLogger(NaiveBayes.class.getName()).log(Level.SEVERE, null, ex);
         }

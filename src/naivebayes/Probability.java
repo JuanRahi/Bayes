@@ -19,7 +19,21 @@ public class Probability {
     }
     
     public void print(){
-        System.out.println("Probability: " + targetValue + ": " + value);
+        System.out.println("Target Value: " + getTargetValue() + ": " + getValue() + "%");
+    }
+
+    /**
+     * @return the targetValue
+     */
+    public String getTargetValue() {
+        return targetValue;
+    }
+
+    /**
+     * @return the value
+     */
+    public double getValue() {
+        return value;
     }
     
 }

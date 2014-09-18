@@ -29,7 +29,7 @@ public class AttributeFrequency {
         return this;
     }
     
-    public int getFrequency(String targetValue){
+    public double getFrequency(String targetValue){
         return this.frequencyPerTargetValue.get(targetValue);
     }
     

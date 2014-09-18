@@ -26,6 +26,7 @@ public class Algorithm {
     private Map<String, Integer> targetAttributeValues = new HashMap<>(); 
     private int totalInstances = -1; 
     private Attribute [] frequencyAttributes;
+    private double m = 0.15;
     
     public void run(String path, String separator) throws FileNotFoundException, IOException {
 
@@ -55,11 +56,35 @@ public class Algorithm {
             Map<String, AttributeFrequency> frequencyValues = calculateFrequencyOfAttributeValues(instances, i);
             frequencyAttributes[i] = new Attribute(allAttributes[i], frequencyValues);
         }
+                
+    }
+    
+    public void evaluate (String path, String separator) throws FileNotFoundException, IOException {
+        List<String[]> evaluateInstances;
+        Map<String, Result> resultsByTargetAttributeValues = new HashMap<>(); 
+        try (BufferedReader reader = new BufferedReader(new FileReader(path))) {
+            String line = reader.readLine();
+            evaluateInstances = new ArrayList<>();
+            while (((line = reader.readLine()) != null) ) {
+                String[] lineSplit = line.split(separator);
+                evaluateInstances.add(lineSplit);                           
+            }
+        }
+        for(String[] evaluateInstance: evaluateInstances){            
+            Probability probability = CalculateProbability(evaluateInstance);
+            if(resultsByTargetAttributeValues.get(probability.getTargetValue()) == null){
+                Result result = new Result(probability);
+                resultsByTargetAttributeValues.put(probability.getTargetValue(), result);                
+            }
+            else{
+                Result result = resultsByTargetAttributeValues.get(probability.getTargetValue()).updateResult(probability.getValue());
+                resultsByTargetAttributeValues.put(probability.getTargetValue(), result);
+            }                                
+        }
         
-        //print();
-        
-        CalculateProbability(instances.get(7)).print();
-        
+        for(String target:resultsByTargetAttributeValues.keySet()){
+            resultsByTargetAttributeValues.get(target).print(evaluateInstances.size());
+        }
     }
     
     private Map<String, AttributeFrequency> calculateFrequencyOfAttributeValues(List<String[]> instances, int indexAttribute) {		
@@ -75,22 +100,27 @@ public class Algorithm {
     }
     
     private Probability CalculateProbability(String[] instance){        
+        double total = 0d;
         double maxProbability = Double.NEGATIVE_INFINITY;
         String maxTargetValue = "";        
         for(String targetValue: targetAttributeValues.keySet()){            
             double probability = 1d;
+            double n = (double)targetAttributeValues.get(targetValue);
             for(int i=2; i< instance.length -1; i++){
-                //(e + m.p) . (n + m) -1
-                probability *= (double)frequencyAttributes[i].getFrequency(instance[i], targetValue)/ (double)targetAttributeValues.get(targetValue);                
+                //(e + m.p) . (n + m) -1   p = 1/k
+                double e = frequencyAttributes[i].getFrequency(instance[i], targetValue);
+                double p = (1d/frequencyAttributes[i].getDifferentValuesCount());                
+                probability *=  (e + (m*p))/(n+m);                 
             }
             probability *= (double)targetAttributeValues.get(targetValue);
             if (probability > maxProbability){
                     maxProbability = probability;
                     maxTargetValue = targetValue;
-            }                                      
+            }
+            total += probability;
         }
             
-        return new Probability(maxTargetValue, maxProbability);
+        return new Probability(maxTargetValue, (maxProbability/total)*100);
     }
     
     private void print(){
