@@ -72,12 +72,16 @@ public class Algorithm {
         }
         for(String[] evaluateInstance: evaluateInstances){            
             Probability probability = CalculateProbability(evaluateInstance);
+            /*System.out.println("Valor esperado: " + evaluateInstance[evaluateInstance.length -1]
+                    + " - Valor obtenido: " + probability.getTargetValue());*/
             if(resultsByTargetAttributeValues.get(probability.getTargetValue()) == null){
-                Result result = new Result(probability);
+                boolean error = !evaluateInstance[evaluateInstance.length -1].equals(probability.getTargetValue());
+                Result result = new Result(probability, error);
                 resultsByTargetAttributeValues.put(probability.getTargetValue(), result);                
             }
             else{
-                Result result = resultsByTargetAttributeValues.get(probability.getTargetValue()).updateResult(probability.getValue());
+                boolean error = !evaluateInstance[evaluateInstance.length -1].equals(probability.getTargetValue());
+                Result result = resultsByTargetAttributeValues.get(probability.getTargetValue()).updateResult(probability.getValue(), error);
                 resultsByTargetAttributeValues.put(probability.getTargetValue(), result);
             }                                
         }

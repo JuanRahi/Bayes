@@ -13,23 +13,33 @@ public class Result {
         
     private String targetValue;
     private int count;
+    private int error;
     private double percentage;
     
-    public Result(Probability probability){
+    public Result(Probability probability, boolean error){
         this.targetValue = probability.getTargetValue();        
         this.percentage = probability.getValue();
         this.count = 1;
+        this.error = error? 1 : 0;
     }
     
-    public Result updateResult(double percent){
+    public Result updateResult(double percent, boolean error){
         this.count++;
         this.percentage += percent;
+        if(error)
+            this.error++;
         return this;
     }
     
     public void print(int totalEvaluatedInstances){
         double average = percentage/count;        
-        System.out.println(targetValue + " total:" + count +  " promedio total:" +((double)count/totalEvaluatedInstances)*100 + "% porcentaje promedio:" + average + "%");
+        double success = ((count - error)/(double)count)*100;
+        System.out.println("----- " + targetValue +" ------");        
+        System.out.println("Total:" + count);
+        System.out.println ("Promedio Total:" +((double)count/totalEvaluatedInstances)*100 + "%");
+        System.out.println("Porcentaje de Aciertos:" + success + "%");
+        System.out.println("Porcentaje Promedio:" + average + "%");
+        System.out.println("");
     }
     
 }
