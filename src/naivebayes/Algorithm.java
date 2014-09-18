@@ -11,10 +11,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  *
@@ -53,7 +51,7 @@ public class Algorithm {
         
         // Get attribute frequency for every attribute, except target attribute
         frequencyAttributes = new Attribute[allAttributes.length -1];
-        for (int i = 0; i < allAttributes.length -1; i++) {
+        for (int i = 2; i < allAttributes.length -1; i++) {
             Map<String, AttributeFrequency> frequencyValues = calculateFrequencyOfAttributeValues(instances, i);
             frequencyAttributes[i] = new Attribute(allAttributes[i], frequencyValues);
         }
@@ -76,13 +74,14 @@ public class Algorithm {
         return targetValuesFrequency;
     }
     
-    private Probability CalculateProbability(String[] instance){
-        double probability = 1d;
+    private Probability CalculateProbability(String[] instance){        
         double maxProbability = Double.NEGATIVE_INFINITY;
         String maxTargetValue = "";        
         for(String targetValue: targetAttributeValues.keySet()){            
-            for(int i=0; i< instance.length -1; i++){
-                probability *= frequencyAttributes[i].getFrequency(instance[i], targetValue);                
+            double probability = 1d;
+            for(int i=2; i< instance.length -1; i++){
+                //(e + m.p) . (n + m) -1
+                probability *= (double)frequencyAttributes[i].getFrequency(instance[i], targetValue)/ (double)targetAttributeValues.get(targetValue);                
             }
             probability *= (double)targetAttributeValues.get(targetValue);
             if (probability > maxProbability){
@@ -96,7 +95,8 @@ public class Algorithm {
     
     private void print(){
         for (Attribute attribute: frequencyAttributes) {                        
-            attribute.print();
+            if(attribute != null)
+                attribute.print();
         }        
     }
                                
