@@ -173,24 +173,27 @@ public class KNN {
                 distances.add(new DistanceDT(row, currentDistance));
                 break;                
             }             
-            //Si se trata del mismo paciente. Deberiamos de darle algun tipo de peso para mejorar el acercamiento no?
-            if(normalizedTarget[1] == normalizedValues[row][1]){
-                
-            }           
-            for(int column =2; column < ATTRIBUTE_SIZE; column++){                
-                switch(typeOfColumn[column]){
-                    case NUMERIC: case RANGE:
-                        if(normalizedValues[row][column] != (double)-1){
-                            tmp = normalizedValues[row][column] - normalizedTarget[column];
-                            //Para evitar posibles distancias negativas
-                            currentDistance += (tmp < 0) ? (tmp * -1) : tmp;                        
-                        }
-                        break;
-                        //En el caso de ser de tipo texto, la distancia es 0 en coincidencia, sino 1/cantidadDeValoresDistintosParaElAtributo                        
-                    case TEXT:
-                        tmp = (Double.compare(normalizedValues[row][column],normalizedTarget[column]) == 0) ? (0) : (double)1/uniques.get(column).size();
-                        currentDistance += tmp;
+            for(int column =2; column < ATTRIBUTE_SIZE; column++){
+                //No sumamos distancias si alguno de los valores es '?'
+                if(!((normalizedValues[row][column] == (double)-1) || (normalizedTarget[column] == (double)-1))) {
+                    switch(typeOfColumn[column]){
+                        case NUMERIC: case RANGE:
+                            if(normalizedValues[row][column] != (double)-1){
+                                tmp = normalizedValues[row][column] - normalizedTarget[column];
+                                //Para evitar posibles distancias negativas
+                                currentDistance += (tmp < 0) ? (tmp * -1) : tmp;                        
+                            }
+                            break;
+                            //En el caso de ser de tipo texto, la distancia es 0 en coincidencia, sino 1/cantidadDeValoresDistintosParaElAtributo                        
+                        case TEXT:
+                            tmp = (Double.compare(normalizedValues[row][column],normalizedTarget[column]) == 0) ? (0) : (double)1/uniques.get(column).size();
+                            currentDistance += tmp;
+                    }
                 }
+            }
+            //Si se trata del mismo paciente, achicamos la distncia un 20% para darle mas peso
+            if(normalizedTarget[1] == normalizedValues[row][1]){
+                currentDistance *= 0.8;
             }
             distances.add(new DistanceDT(row, currentDistance));
         }
