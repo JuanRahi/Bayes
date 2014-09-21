@@ -180,11 +180,13 @@ public class KNN {
             for(int column =2; column < ATTRIBUTE_SIZE; column++){                
                 switch(typeOfColumn[column]){
                     case NUMERIC: case RANGE:
-                        tmp = normalizedValues[row][column] - normalizedTarget[column];
-                        //Para evitar posibles distancias negativas
-                        currentDistance += (tmp < 0) ? (tmp * -1) : tmp;
-                        //En el caso de ser de tipo texto, la distancia es 0 en coincidencia, sino 1/cantidadDeValoresDistintosParaElAtributo
+                        if(normalizedValues[row][column] != (double)-1){
+                            tmp = normalizedValues[row][column] - normalizedTarget[column];
+                            //Para evitar posibles distancias negativas
+                            currentDistance += (tmp < 0) ? (tmp * -1) : tmp;                        
+                        }
                         break;
+                        //En el caso de ser de tipo texto, la distancia es 0 en coincidencia, sino 1/cantidadDeValoresDistintosParaElAtributo                        
                     case TEXT:
                         tmp = (Double.compare(normalizedValues[row][column],normalizedTarget[column]) == 0) ? (0) : (double)1/uniques.get(column).size();
                         currentDistance += tmp;
