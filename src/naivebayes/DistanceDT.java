@@ -9,12 +9,13 @@ package naivebayes;
  * @author Admin
  */
 public class DistanceDT {
-    public int row;
+    public int row, targetValue;
     public double distance;
     
-    public DistanceDT(int row, double distance){
+    public DistanceDT(int row, double distance, int targetValue){
         this.distance = distance;
         this.row = row;
+        this.targetValue = targetValue;
     }
     
     public void print(){

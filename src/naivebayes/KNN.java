@@ -14,6 +14,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Random;
 
 /**
  *
@@ -22,8 +23,9 @@ import java.util.LinkedList;
 public class KNN {
     enum columnType {UNIQUE, NUMERIC, TEXT, RANGE};
     columnType[] typeOfColumn=null;
-    public static final int DATA_SIZE = 197;
-    public static final int ATTRIBUTE_SIZE = 50;
+    public static int DATA_SIZE;
+    public static int TARGET_SIZE;
+    public static int ATTRIBUTE_SIZE;
     
     public columnType[] getColumnTypes(){
         if(typeOfColumn==null)
@@ -98,7 +100,8 @@ public class KNN {
                     currentColumn.add(lineValues[column]);
                 
             }
-            lineCounter++;
+            //System.out.println("Linea " + lineCounter + " completada");
+            lineCounter++;                       
         }
         return allValues;
     }
@@ -141,12 +144,11 @@ public class KNN {
         return normalizedLine;
     }
     
-    public LinkedList<DistanceDT> run(String path, String separator, String [] target) throws FileNotFoundException, IOException{
+    public LinkedList<LinkedList<String>> normalizeTrainingValues(double[][] normalizedValues, double[][] normalizedTargets, String path, String separator, String [][] targets) throws FileNotFoundException, IOException{
         BufferedReader reader = new BufferedReader(new FileReader(path));
         String line = reader.readLine();
         //Obtener todos los nombres de atributos. El ultimo asumimos es el target
-        String [] lineValues = line.split(separator);        
-        double[][] normalizedValues = new double[DATA_SIZE][ATTRIBUTE_SIZE];           
+        String [] lineValues = line.split(separator);                   
         
         //Creamos una lista para cada atributo, donde guardamos los valores unicos
         LinkedList<LinkedList<String>> uniques = new LinkedList();
@@ -155,22 +157,30 @@ public class KNN {
         
         int [] max = new int[ATTRIBUTE_SIZE];
         int [] min = new int[ATTRIBUTE_SIZE];
-                
+        
+        System.out.println("Obteniendo attributos unicos...");
         String [][] allValues = getDataFromFile(reader, separator, max, min, uniques);
         //Una vez obtenida toda la data necesaria, normalizamos los valores.
         
+        System.out.println("Normalizano data...");
         for(int row = 0; row < DATA_SIZE; row++){
             normalizedValues[row] = normalizeValues(allValues[row], uniques, max, min);
+            //System.out.println("Fila " + row + " normalizada");
+        }             
+        for(int row = 0; row < TARGET_SIZE; row++){
+            normalizedTargets[row] = normalizeValues(targets[row], uniques, max, min);
         }
-        double[] normalizedTarget = normalizeValues(target, uniques, max, min);
-        LinkedList<DistanceDT> distances = new LinkedList<>();
+        return uniques;
+    }
         
+    public LinkedList<DistanceDT> run(double[][] normalizedValues, double[] normalizedTarget, LinkedList<LinkedList<String>> uniques){
+        LinkedList<DistanceDT> distances = new LinkedList<>();
         double currentDistance, tmp;
         for(int row = 0; row < DATA_SIZE; row++){
             currentDistance = 0;
             //Si encontramos una linea con igual valor de identificar unico, salimos, ya que tenemos coincidencia exacta
             if(normalizedTarget[0] == normalizedValues[row][0]){
-                distances.add(new DistanceDT(row, currentDistance));
+                distances.add(new DistanceDT(row, currentDistance, (int)normalizedValues[row][ATTRIBUTE_SIZE - 1]));
                 break;                
             }             
             for(int column =2; column < ATTRIBUTE_SIZE; column++){
@@ -195,7 +205,7 @@ public class KNN {
             if(normalizedTarget[1] == normalizedValues[row][1]){
                 currentDistance *= 0.8;
             }
-            distances.add(new DistanceDT(row, currentDistance));
+            distances.add(new DistanceDT(row, currentDistance, (int)normalizedValues[row][ATTRIBUTE_SIZE - 1]));
         }
         
         //Ordernamos la coleccion por distancia
@@ -212,15 +222,56 @@ public class KNN {
     
     
     public static void main(String[] args) throws FileNotFoundException, IOException {
-        BufferedReader reader = new BufferedReader(new FileReader("C:\\target.csv"));
-        String line = reader.readLine();
-        //Obtener todos los nombres de atributos. El ultimo asumimos es el target
-        String [] lineValues = line.split(",");
-
+        String dataPath = "C:\\diabetic_data.csv";         
+        String targetPath = "C:\\target.csv";
+        String splitter = ",";
+        int k = 5;
+        
+        //Obtener el total de lineas del archivo de entrenamiento
+        BufferedReader reader = new BufferedReader(new FileReader(dataPath));        
+        String line = reader.readLine();        
+        //Quitamos uno para dejar fuera del calculo al atributo a predecir
+        ATTRIBUTE_SIZE = line.split(splitter).length;
+        int lineCount = 1;
+        while((line = reader.readLine()) != null){
+            lineCount++;
+        }        
+        DATA_SIZE = lineCount - 2;        
+        
+        System.out.println("Primer pasada realizada. DATA_SIZE=" + DATA_SIZE);
+        //Obtener el total de lsineas del archivo de targets
+        reader = new BufferedReader(new FileReader(targetPath));
+        lineCount = 0;
+        while(reader.readLine() != null){
+            lineCount++;
+        }
+        TARGET_SIZE = lineCount;
+        System.out.println("Archivo target leadio. TARGET_SIZE=" + TARGET_SIZE);
+        
+        //Guardamos los targets en un String[]
+        String[][] targets = new String[TARGET_SIZE][ATTRIBUTE_SIZE];        
+        reader = new BufferedReader(new FileReader(targetPath));
+        lineCount = 0;
+        while((line = reader.readLine()) != null){
+            targets[lineCount] = line.split(splitter);
+            lineCount++;
+        }       
+        System.out.println("Archivo target procesado");
+        double[][] normalizedValues = new double[DATA_SIZE][ATTRIBUTE_SIZE];
+        double[][] normalizedTargets = new double[TARGET_SIZE][ATTRIBUTE_SIZE];;
+        
         KNN knn = new KNN();
-        LinkedList<DistanceDT> distances = knn.run("C:\\d.csv", ",", lineValues);
-        Iterator it = distances.iterator();
-        while(it.hasNext())
-            ((DistanceDT)it.next()).print();
+        LinkedList<LinkedList<String>> uniques = knn.normalizeTrainingValues(normalizedValues, normalizedTargets, dataPath, splitter, targets);
+        LinkedList<DistanceDT> distances = null;
+        System.out.println("Data normalizada");
+        Iterator it;
+        for(int i = 0; i < TARGET_SIZE; i++){        
+             distances = knn.run(normalizedValues, normalizedTargets[i], uniques);
+             it = distances.iterator();
+             for(int j = 0; j<k; j++){
+                 //Calcular resultado final!
+             }
+             
+        }
     }
 }
