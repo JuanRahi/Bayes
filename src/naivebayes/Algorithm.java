@@ -10,6 +10,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,10 +28,16 @@ public class Algorithm {
     private int totalInstances = -1; 
     private Attribute [] frequencyAttributes;
     private double m = 0.15;
+    private static final List<Integer> continuousAttributes = Arrays.asList(9,12,13,14,15,16,17,21);    
+    private double[] mean;
+    //private double[] deviation;
+    
     
     public void run(String path, String separator) throws FileNotFoundException, IOException {
 
         List<String[]> instances;
+        List<String[]> trainInstances;
+        List<String[]> evaluationInstances;
         try (BufferedReader reader = new BufferedReader(new FileReader(path))) {
             String line = reader.readLine();
             allAttributes = line.split(separator);
@@ -49,27 +56,89 @@ public class Algorithm {
         }
         
         totalInstances = instances.size();
+        int totalEvaluationInstances = instances.size()/5;
+        int startEvaluation = (int)(Math.random() * (totalInstances - totalEvaluationInstances));
+        evaluationInstances = new ArrayList<>();
+        trainInstances = new ArrayList<>();
+        
+        for(int i=0; i< totalInstances; i++){
+            if((i >= startEvaluation) && (i < (startEvaluation + totalEvaluationInstances)))
+                evaluationInstances.add(instances.get(i));
+            else
+                trainInstances.add(instances.get(i));            
+        }
+        
+        continuousAttributes(trainInstances, totalEvaluationInstances);
+        
         
         // Get attribute frequency for every attribute, except target attribute
         frequencyAttributes = new Attribute[allAttributes.length -1];
-        for (int i = 2; i < allAttributes.length -1; i++) {
-            Map<String, AttributeFrequency> frequencyValues = calculateFrequencyOfAttributeValues(instances, i);
-            frequencyAttributes[i] = new Attribute(allAttributes[i], frequencyValues);
+        for (int i = 0; i < allAttributes.length -1; i++) {            
+                Map<String, AttributeFrequency> frequencyValues = (continuousAttributes.contains(i)) ? calculateFrequencyOfContinuousAttributeValues(trainInstances, i) : calculateFrequencyOfAttributeValues(trainInstances, i);
+                frequencyAttributes[i] = new Attribute(allAttributes[i], frequencyValues);
         }
+        
+        
+        evaluate(evaluationInstances);
                 
     }
+
+    private Map<String, AttributeFrequency> calculateFrequencyOfAttributeValues(List<String[]> instances, int indexAttribute) {		
+        Map<String, AttributeFrequency> targetValuesFrequency = new HashMap<>();
+        for (String[] instance : instances) {
+                String targetValue = instance[indexAttribute];
+                if (targetValuesFrequency.get(targetValue) == null)
+                    targetValuesFrequency.put(targetValue, new AttributeFrequency(targetAttributeValues, instance[indexTargetAttribute]));
+                else 
+                    targetValuesFrequency.put(targetValue, targetValuesFrequency.get(targetValue).updateFrequency(instance[indexTargetAttribute]));
+        }        
+        return targetValuesFrequency;
+    }
     
-    public void evaluate (String path, String separator) throws FileNotFoundException, IOException {
-        List<String[]> evaluateInstances;
-        Map<String, Result> resultsByTargetAttributeValues = new HashMap<>(); 
-        try (BufferedReader reader = new BufferedReader(new FileReader(path))) {
-            String line = reader.readLine();
-            evaluateInstances = new ArrayList<>();
-            while (((line = reader.readLine()) != null) ) {
-                String[] lineSplit = line.split(separator);
-                evaluateInstances.add(lineSplit);                           
+    private Map<String, AttributeFrequency> calculateFrequencyOfContinuousAttributeValues(List<String[]> instances, int indexAttribute) {		
+        Map<String, AttributeFrequency> targetValuesFrequency = new HashMap<>();
+        for (String[] instance : instances) {
+                String targetValue = instance[indexAttribute];
+                Double d = Double.parseDouble(targetValue);                
+                targetValue = d > (2*mean[indexAttribute]) ? "VeryBig" : (d > mean[indexAttribute]) ? "Big" : (d > mean[indexAttribute]/2) ? "Small" : "VerySmall";
+                if (targetValuesFrequency.get(targetValue) == null)
+                    targetValuesFrequency.put(targetValue, new AttributeFrequency(targetAttributeValues, instance[indexTargetAttribute]));
+                else 
+                    targetValuesFrequency.put(targetValue, targetValuesFrequency.get(targetValue).updateFrequency(instance[indexTargetAttribute]));
+        }        
+        return targetValuesFrequency;
+    }
+    
+    private void continuousAttributes(List<String[]> trainInstances, int totalEvaluationInstances) throws NumberFormatException {
+        // Atributos con valores continuos
+        mean = new double[allAttributes.length];
+        for(int i=0; i<allAttributes.length; i++){
+            if(continuousAttributes.contains(i)){
+                double media = 0d;
+                for (String[] trainInstance : trainInstances) {
+                    String value = trainInstance[i];
+                    media += Integer.parseInt(value);
+                }
+                mean[i] = media / (totalInstances - totalEvaluationInstances);
             }
         }
+        
+        /*for(int i=0; i<allAttributes.length; i++){
+        if(continuousAttributes.contains(i)){
+        double standar = 0d;
+        double media = mean[i];
+        for (String[] trainInstance : trainInstances) {
+        String value = trainInstance[i];
+        standar += ((Integer.parseInt(value) - media)*(Integer.parseInt(value) - media));
+        }
+        deviation[i] = sqrt((1d/(totalInstances - totalEvaluationInstances -1)) * standar);
+        }
+        }*/
+    }
+    
+    private void evaluate (List<String[]> evaluateInstances) throws FileNotFoundException, IOException {        
+        Map<String, Result> resultsByTargetAttributeValues = new HashMap<>(); 
+
         for(String[] evaluateInstance: evaluateInstances){            
             Probability probability = CalculateProbability(evaluateInstance);
             /*System.out.println("Valor esperado: " + evaluateInstance[evaluateInstance.length -1]
@@ -90,19 +159,7 @@ public class Algorithm {
             resultsByTargetAttributeValues.get(target).print(evaluateInstances.size());
         }
     }
-    
-    private Map<String, AttributeFrequency> calculateFrequencyOfAttributeValues(List<String[]> instances, int indexAttribute) {		
-        Map<String, AttributeFrequency> targetValuesFrequency = new HashMap<>();
-        for (String[] instance : instances) {
-                String targetValue = instance[indexAttribute];
-                if (targetValuesFrequency.get(targetValue) == null)
-                    targetValuesFrequency.put(targetValue, new AttributeFrequency(targetAttributeValues, instance[indexTargetAttribute]));
-                else 
-                    targetValuesFrequency.put(targetValue, targetValuesFrequency.get(targetValue).updateFrequency(instance[indexTargetAttribute]));
-        }        
-        return targetValuesFrequency;
-    }
-    
+            
     private Probability CalculateProbability(String[] instance){        
         double total = 0d;
         double maxProbability = Double.NEGATIVE_INFINITY;
@@ -110,9 +167,15 @@ public class Algorithm {
         for(String targetValue: targetAttributeValues.keySet()){            
             double probability = 1d;
             double n = (double)targetAttributeValues.get(targetValue);
-            for(int i=2; i< instance.length -1; i++){
+            for(int i=0; i< instance.length -1; i++){
                 //(e + m.p) . (n + m) -1   p = 1/k
-                double e = frequencyAttributes[i].getFrequency(instance[i], targetValue);
+                String value = instance[i];
+                if(continuousAttributes.contains(i)){
+                    double d = Double.parseDouble(value);
+                    value = d > (2*mean[i]) ? "VeryBig" : (d > mean[i]) ? "Big" : (d > mean[i]/2) ? "Small" : "VerySmall";
+                }
+                
+                double e = frequencyAttributes[i].getFrequency(value, targetValue);
                 double p = (1d/frequencyAttributes[i].getDifferentValuesCount());                
                 probability *=  (e + (m*p))/(n+m);                 
             }

@@ -24,8 +24,7 @@ public class NaiveBayes {
             String path = "diabetic_data.csv";
             String separator = ",";     
             Algorithm naiveBayes = new Algorithm();        
-            naiveBayes.run(path, separator);
-            naiveBayes.evaluate("diabetic_data(2000).csv", separator);
+            naiveBayes.run(path, separator);            
         } catch (IOException ex) {
             Logger.getLogger(NaiveBayes.class.getName()).log(Level.SEVERE, null, ex);
         }
