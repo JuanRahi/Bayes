@@ -225,7 +225,7 @@ public class KNN {
         String dataPath = "C:\\diabetic_data.csv";         
         String targetPath = "C:\\target.csv";
         String splitter = ",";
-        int k = 5;
+        int k = 3;
         
         //Obtener el total de lineas del archivo de entrenamiento
         BufferedReader reader = new BufferedReader(new FileReader(dataPath));        
@@ -264,14 +264,39 @@ public class KNN {
         LinkedList<LinkedList<String>> uniques = knn.normalizeTrainingValues(normalizedValues, normalizedTargets, dataPath, splitter, targets);
         LinkedList<DistanceDT> distances = null;
         System.out.println("Data normalizada");
-        Iterator it;
+        int result = -1;
+        int [] target = new int[k];
         for(int i = 0; i < TARGET_SIZE; i++){        
-             distances = knn.run(normalizedValues, normalizedTargets[i], uniques);
-             it = distances.iterator();
-             for(int j = 0; j<k; j++){
-                 //Calcular resultado final!
-             }
-             
+            distances = knn.run(normalizedValues, normalizedTargets[i], uniques);
+            System.out.print(i + ": Valores[ ");
+            for(int j=0; j<k; j++){
+                System.out.print(distances.get(j).targetValue + " ");
+                target[j] = distances.get(j).targetValue;
+            }
+            System.out.print("] ");
+            switch(k){                
+                case 1:
+                    //Si k es uno, simplemente retornamos el targetValue del vecino mas cercano
+                    result = target[0];
+                    break;
+                case 3:                    
+                    //Si es de la forma [x,x,y] o [x,y,x] retornar x
+                    if((target[0] == target[1]) || (target[1] == target[2]))
+                        result = target[0];
+                    //Si es de la forma [x,y,y], retornamos y
+                    else if (target[1] == target[2])
+                        result = target[1];
+                    //Sino es de la forma [x,y,z]. Retornamos x por tener menor distancia
+                    else
+                        result = target[0];
+                    break;
+                case 5:                                                          
+                    result = -1;
+            }
+            System.out.print("Estimado: " + result + " ");
+            System.out.println("Real: "+ normalizedTargets[i][ATTRIBUTE_SIZE-1]);                        
+            if(result!=normalizedTargets[i][ATTRIBUTE_SIZE-1])
+                System.out.println("####### RESULTADO DISTINTO!!! #######");
         }
     }
 }
