@@ -21,7 +21,7 @@ public class NaiveBayes {
      */
     public static void main(String[] args) {
         try {
-            String path = "diabetic_data.csv";
+            String path = "diabetic_data.csv";            
             String separator = ",";     
             Algorithm naiveBayes = new Algorithm();        
             naiveBayes.run(path, separator);            

@@ -21,11 +21,11 @@ public class Attribute {
     }
     
     public double getFrequency(String attributeValue, String targetAttributeValue){
-        AttributeFrequency attributeFrequency = this.attributeFrequency.get(attributeValue);
-        if(attributeFrequency == null)
-            return 1d;
-        else 
-        return attributeFrequency.getFrequency(targetAttributeValue);
+        AttributeFrequency frequency = this.attributeFrequency.get(attributeValue);
+        if(frequency == null)
+            return 0d;
+
+        return frequency.getFrequency(targetAttributeValue);
     }
     
     public double getDifferentValuesCount(){
