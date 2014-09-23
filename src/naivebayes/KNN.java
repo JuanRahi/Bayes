@@ -162,16 +162,13 @@ public class KNN {
         String [][] allValues = getDataFromFile(reader, separator, max, min, uniques);
         //Una vez obtenida toda la data necesaria, normalizamos los valores.
         
-        System.out.println("Normalizano data...");
+        System.out.println("Normalizano data de entrenamiento...");
         for(int row = 0; row < DATA_SIZE; row++){
             normalizedValues[row] = normalizeValues(allValues[row], uniques, max, min);
             //System.out.println("Fila " + row + " normalizada");
         }             
-        for(int row = 0; row < TARGET_SIZE; row++){
-            if(row==999)
-            {
-                System.err.print(row);
-                }
+        System.out.println("Normalizano data de validación...");
+        for(int row = 0; row < TARGET_SIZE; row++){            
             normalizedTargets[row] = normalizeValues(targets[row], uniques, max, min);
         }
         return uniques;
@@ -279,7 +276,7 @@ public class KNN {
         String targetPath = "D:\\Santiago\\Desktop\\target.csv";
         String splitter = ",";
         int countFallos = 0;
-        int k = 5;
+        int k = 1;
         
         //Obtener el total de lineas del archivo de entrenamiento
         BufferedReader reader = new BufferedReader(new FileReader(dataPath));        
@@ -292,7 +289,7 @@ public class KNN {
         }        
         DATA_SIZE = lineCount - 2;        
         
-        System.out.println("Primer pasada realizada. DATA_SIZE=" + DATA_SIZE);
+        System.out.println("Tamaño de archivo de entrenamiento: " + DATA_SIZE + " líneas");
         //Obtener el total de lsineas del archivo de targets
         reader = new BufferedReader(new FileReader(targetPath));
         lineCount = 0;
@@ -300,8 +297,9 @@ public class KNN {
             lineCount++;
         }
         TARGET_SIZE = lineCount;
-        System.out.println("Archivo target leadio. TARGET_SIZE=" + TARGET_SIZE);
+        System.out.println("Tamaño de archivo de validación: " + TARGET_SIZE + " líneas");
         
+        System.out.println("Procesando archivo de validación...");
         //Guardamos los targets en un String[]
         String[][] targets = new String[TARGET_SIZE][ATTRIBUTE_SIZE];        
         reader = new BufferedReader(new FileReader(targetPath));
@@ -310,37 +308,43 @@ public class KNN {
             targets[lineCount] = line.split(splitter);
             lineCount++;
         }       
-        System.out.println("Archivo target procesado");
+        System.out.println("Archivo validación procesado.");
         double[][] normalizedValues = new double[DATA_SIZE][ATTRIBUTE_SIZE];
         double[][] normalizedTargets = new double[TARGET_SIZE][ATTRIBUTE_SIZE];;
         
         KNN knn = new KNN();
         LinkedList<LinkedList<String>> uniques = knn.normalizeTrainingValues(normalizedValues, normalizedTargets, dataPath, splitter, targets);
         LinkedList<DistanceDT> distances = null;
-        System.out.println("Data normalizada");
-        int result = -1;
+        System.out.println("Data normalizada!");
+        System.out.println("Obteniendo estimaciones para los " + TARGET_SIZE + " valores de validacion con k = " + k + "...");
+        int result = -1, bigCounter =0;
         int [] target = new int[k];
-        for(int i = 0; i < TARGET_SIZE; i++){        
+        
+        for(int i = 0; i < TARGET_SIZE; i++){
+            if((i % 1000)==0){
+                bigCounter++;
+                System.out.println(bigCounter * 1000 + " validaciones realizadas...");
+            }
             distances = knn.run(normalizedValues, normalizedTargets[i], uniques);
-            System.out.format("%3d: %s", i, " Valores[");
+            //System.out.format("%3d: %s", i, " Valores[");
             for(int j=0; j<k; j++){
-                System.out.format("%3s ", uniques.get(ATTRIBUTE_SIZE-1).get(distances.get(j).targetValue));
+            //    System.out.format("%3s ", uniques.get(ATTRIBUTE_SIZE-1).get(distances.get(j).targetValue));
                 target[j] = distances.get(j).targetValue;
             }
-            System.out.print("] ");
+            //System.out.print("] ");
             switch(k){                
                 case 1:
                     //Si k es uno, simplemente retornamos el targetValue del vecino mas cercano
                     result = target[0];
                     break;
                 case 3:                    
-                    //Si es de la forma [x,x,y] o [x,y,x] retornar x
-                    if((target[0] == target[1]) || (target[1] == target[2]))
+                    //Si es de la forma [x,x,y] ó [x,y,x] retornar x
+                    if((target[0] == target[1]) || (target[0] == target[2]))
                         result = target[0];
                     //Si es de la forma [x,y,y], retornamos y
                     else if (target[1] == target[2])
                         result = target[1];
-                    //Sino es de la forma [x,y,z]. Retornamos x por tener menor distancia
+                    //Sino, es de la forma [x,y,z]. Retornamos x ya que al estar ordenador por distancia, es el mas cercano
                     else
                         result = target[0];
                     break;
@@ -371,14 +375,14 @@ public class KNN {
             }
             
             //Realizamos la conversion a los valores existentes para imprimir el resultado correctamente
-            System.out.format("%9s %3s", "Estimado:", uniques.get(ATTRIBUTE_SIZE-1).get(result));
-            System.out.format("%6s %3s", "Real:", uniques.get(ATTRIBUTE_SIZE-1).get((int)normalizedTargets[i][ATTRIBUTE_SIZE-1]));
+            //System.out.format("%9s %3s", "Estimado:", uniques.get(ATTRIBUTE_SIZE-1).get(result));
+            //System.out.format("%6s %3s", "Real:", uniques.get(ATTRIBUTE_SIZE-1).get((int)normalizedTargets[i][ATTRIBUTE_SIZE-1]));
             if(result!=normalizedTargets[i][ATTRIBUTE_SIZE-1]){
-                System.out.println("<-- Resultado distinto al estimado");
+                //System.out.println("<-- Resultado distinto al estimado");
                 countFallos++;
             }
-            else
-                System.out.println();
+            //else
+                //System.out.println();
         }
         
         System.out.println("\nResumen de resultados del algoritmo");
