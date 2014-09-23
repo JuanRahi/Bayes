@@ -168,6 +168,10 @@ public class KNN {
             //System.out.println("Fila " + row + " normalizada");
         }             
         for(int row = 0; row < TARGET_SIZE; row++){
+            if(row==999)
+            {
+                System.err.print(row);
+                }
             normalizedTargets[row] = normalizeValues(targets[row], uniques, max, min);
         }
         return uniques;
@@ -220,12 +224,62 @@ public class KNN {
         return distances;
     }    
     
+    public int desempateK5(LinkedList<DistanceDT> distances){
+        Iterator it = distances.iterator();
+        int value, cero = 0, uno = 0 , dos = 0;
+        DistanceDT distanceDT;
+        double distanceCero = 0, distanceUno = 0, distanceDos = 0, distance;
+        while(it.hasNext()){
+            distanceDT = ((DistanceDT)it.next());
+            value = distanceDT.targetValue;
+            distance = distanceDT.distance;
+            switch(value){
+                case 0:
+                    cero++;
+                    distanceCero += distance;
+                    break;
+                case 1:
+                    uno++;
+                    distanceUno += distance;
+                    break;
+                case 2:
+                    dos++;
+                    distanceDos += distance;
+                    break;
+            }
+        }
+        //Descartamos el targetValue que tenga un solo valor, para comparar con los que empatan
+        if(cero == 1)
+            distanceCero = Double.MAX_VALUE;
+        else if(uno == 1)
+            distanceUno = Double.MAX_VALUE;
+        else if(dos == 1)
+            distanceDos = Double.MAX_VALUE;
+            
+        //Calculamos el promedio de distancias.
+        distanceCero = distanceCero/(double)cero;
+        distanceUno = distanceUno/(double)uno;
+        distanceDos = distanceDos/(double)dos;
+        double min = Math.min(distanceCero, Math.min(distanceUno, distanceDos));
+        
+        //Retornamos el de distancia minima
+        if(Double.compare(min, distanceCero) == 0)
+            return 0;
+        else if(Double.compare(min, distanceUno) == 0)
+            return 1;
+        else if(Double.compare(min, distanceDos) == 0)
+            return 2;
+        //ALGO SALIO MAL!
+        else return -1;
+    }
+    
     
     public static void main(String[] args) throws FileNotFoundException, IOException {
-        String dataPath = "C:\\diabetic_data.csv";         
-        String targetPath = "C:\\target.csv";
+        String dataPath = "D:\\Santiago\\Desktop\\diabetic_data.csv";         
+        String targetPath = "D:\\Santiago\\Desktop\\target.csv";
         String splitter = ",";
-        int k = 3;
+        int countFallos = 0;
+        int k = 5;
         
         //Obtener el total de lineas del archivo de entrenamiento
         BufferedReader reader = new BufferedReader(new FileReader(dataPath));        
@@ -268,9 +322,9 @@ public class KNN {
         int [] target = new int[k];
         for(int i = 0; i < TARGET_SIZE; i++){        
             distances = knn.run(normalizedValues, normalizedTargets[i], uniques);
-            System.out.print(i + ": Valores[ ");
+            System.out.format("%3d: %s", i, " Valores[");
             for(int j=0; j<k; j++){
-                System.out.print(distances.get(j).targetValue + " ");
+                System.out.format("%3s ", uniques.get(ATTRIBUTE_SIZE-1).get(distances.get(j).targetValue));
                 target[j] = distances.get(j).targetValue;
             }
             System.out.print("] ");
@@ -291,12 +345,45 @@ public class KNN {
                         result = target[0];
                     break;
                 case 5:                                                          
-                    result = -1;
+                    LinkedList<DistanceDT> listaDistanceDT = new LinkedList<>();
+                    LinkedList<Integer> listaDeTargets = new LinkedList<>();
+                    for(int j=0; j<k; j++){
+                        listaDistanceDT.add(distances.get(j));
+                        listaDeTargets.add(distances.get(j).targetValue);
+                    }
+                    
+                    int cero = Collections.frequency(listaDeTargets, 0);
+                    int uno = Collections.frequency(listaDeTargets, 1);
+                    int dos = Collections.frequency(listaDeTargets, 2);
+                    int maximum = Math.max(cero, Math.max(uno, dos));
+                    
+                    //Si hay un valor mayoritario, lo retornamos
+                    if((cero == maximum) && (cero > uno) && (cero > dos))
+                        result = 0;
+                    else if((uno == maximum) && (uno > cero) && (uno > dos))
+                        result = 1;
+                    else if((dos == maximum) && (dos > cero) && (dos > uno))
+                        result = 2;
+                    //Sino, hubo algun empate. Desempatamos con el promedio de las distancias
+                    else{
+                        result = knn.desempateK5(listaDistanceDT);
+                    }
             }
-            System.out.print("Estimado: " + result + " ");
-            System.out.println("Real: "+ normalizedTargets[i][ATTRIBUTE_SIZE-1]);                        
-            if(result!=normalizedTargets[i][ATTRIBUTE_SIZE-1])
-                System.out.println("####### RESULTADO DISTINTO!!! #######");
+            
+            //Realizamos la conversion a los valores existentes para imprimir el resultado correctamente
+            System.out.format("%9s %3s", "Estimado:", uniques.get(ATTRIBUTE_SIZE-1).get(result));
+            System.out.format("%6s %3s", "Real:", uniques.get(ATTRIBUTE_SIZE-1).get((int)normalizedTargets[i][ATTRIBUTE_SIZE-1]));
+            if(result!=normalizedTargets[i][ATTRIBUTE_SIZE-1]){
+                System.out.println("<-- Resultado distinto al estimado");
+                countFallos++;
+            }
+            else
+                System.out.println();
         }
+        
+        System.out.println("\nResumen de resultados del algoritmo");
+        System.out.println("Cantidad de aciertos: " + (TARGET_SIZE - countFallos));
+        System.out.println("Cantidad de fallos: " + countFallos);
+        System.out.println("Aciertos en un : " + (TARGET_SIZE - countFallos) * 100/TARGET_SIZE +"%");
     }
 }
