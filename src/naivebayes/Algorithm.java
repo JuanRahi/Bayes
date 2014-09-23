@@ -62,7 +62,7 @@ public class Algorithm {
         trainInstances = new ArrayList<>();
                 
         for(int i=0; i< totalInstances; i++){
-            if(i % 4 == 0){
+            if(i % 5 == 0){
                 evaluationInstances.add(instances.get(i));
                 String targetValue = instances.get(i)[indexTargetAttribute];
                 if(evaluationTargetAttributeValues.get(targetValue) == null)
