@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package naivebayes;
+package knn;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -106,7 +106,7 @@ public class KNN {
         return allValues;
     }
     
-    public double[] normalizeValues(String [] values, LinkedList<LinkedList<String>> uniques, int[]max, int[]min){        
+    public double[] normalizeRow(String [] values, LinkedList<LinkedList<String>> uniques, int[]max, int[]min){        
         LinkedList currentColumnInUniques;
         double [] normalizedLine = new double[ATTRIBUTE_SIZE];
         for(int column = 0; column < ATTRIBUTE_SIZE; column++){
@@ -144,7 +144,7 @@ public class KNN {
         return normalizedLine;
     }
     
-    public LinkedList<LinkedList<String>> normalizeTrainingValues(double[][] normalizedValues, double[][] normalizedTargets, String path, String separator, String [][] targets) throws FileNotFoundException, IOException{
+    public LinkedList<LinkedList<String>> normalizeValues(double[][] normalizedValues, double[][] normalizedTargets, String path, String separator, String [][] targets) throws FileNotFoundException, IOException{
         BufferedReader reader = new BufferedReader(new FileReader(path));
         String line = reader.readLine();
         //Obtener todos los nombres de atributos. El ultimo asumimos es el target
@@ -162,19 +162,19 @@ public class KNN {
         String [][] allValues = getDataFromFile(reader, separator, max, min, uniques);
         //Una vez obtenida toda la data necesaria, normalizamos los valores.
         
-        System.out.println("Normalizano data de entrenamiento...");
+        System.out.println("Normalizando data de entrenamiento...");
         for(int row = 0; row < DATA_SIZE; row++){
-            normalizedValues[row] = normalizeValues(allValues[row], uniques, max, min);
+            normalizedValues[row] = normalizeRow(allValues[row], uniques, max, min);
             //System.out.println("Fila " + row + " normalizada");
         }             
-        System.out.println("Normalizano data de validación...");
+        System.out.println("Normalizando data de validación...");
         for(int row = 0; row < TARGET_SIZE; row++){            
-            normalizedTargets[row] = normalizeValues(targets[row], uniques, max, min);
+            normalizedTargets[row] = normalizeRow(targets[row], uniques, max, min);
         }
         return uniques;
     }
         
-    public LinkedList<DistanceDT> run(double[][] normalizedValues, double[] normalizedTarget, LinkedList<LinkedList<String>> uniques){
+    public LinkedList<DistanceDT> getDistances(double[][] normalizedValues, double[] normalizedTarget, LinkedList<LinkedList<String>> uniques){
         LinkedList<DistanceDT> distances = new LinkedList<>();
         double currentDistance, tmp;
         for(int row = 0; row < DATA_SIZE; row++){
@@ -264,19 +264,19 @@ public class KNN {
             return 0;
         else if(Double.compare(min, distanceUno) == 0)
             return 1;
-        else if(Double.compare(min, distanceDos) == 0)
+        else 
             return 2;
-        //ALGO SALIO MAL!
-        else return -1;
     }
     
     
     public static void main(String[] args) throws FileNotFoundException, IOException {
-        String dataPath = "D:\\Santiago\\Desktop\\diabetic_data.csv";         
-        String targetPath = "D:\\Santiago\\Desktop\\target.csv";
-        String splitter = ",";
-        int countFallos = 0;
+        String dataPath = "diabetic_data.csv";         
+        String targetPath = "target_data.csv";
         int k = 1;
+        
+        String splitter = ",";
+        int countFallos = 0;              
+        long time = System.currentTimeMillis();
         
         //Obtener el total de lineas del archivo de entrenamiento
         BufferedReader reader = new BufferedReader(new FileReader(dataPath));        
@@ -289,7 +289,7 @@ public class KNN {
         }        
         DATA_SIZE = lineCount - 2;        
         
-        System.out.println("Tamaño de archivo de entrenamiento: " + DATA_SIZE + " líneas");
+        System.out.println("Tamaño de archivo de entrenamiento: " + (DATA_SIZE + 1) + " líneas");
         //Obtener el total de lsineas del archivo de targets
         reader = new BufferedReader(new FileReader(targetPath));
         lineCount = 0;
@@ -313,19 +313,21 @@ public class KNN {
         double[][] normalizedTargets = new double[TARGET_SIZE][ATTRIBUTE_SIZE];;
         
         KNN knn = new KNN();
-        LinkedList<LinkedList<String>> uniques = knn.normalizeTrainingValues(normalizedValues, normalizedTargets, dataPath, splitter, targets);
-        LinkedList<DistanceDT> distances = null;
-        System.out.println("Data normalizada!");
+        LinkedList<LinkedList<String>> uniques = knn.normalizeValues(normalizedValues, normalizedTargets, dataPath, splitter, targets);
+        LinkedList<DistanceDT> distances = null;        
+        System.out.println("Data normalizada en " + (System.currentTimeMillis() - time) /1000 + " segundos!");
+        time = System.currentTimeMillis();
         System.out.println("Obteniendo estimaciones para los " + TARGET_SIZE + " valores de validacion con k = " + k + "...");
         int result = -1, bigCounter =0;
         int [] target = new int[k];
         
         for(int i = 0; i < TARGET_SIZE; i++){
-            if((i % 1000)==0){
+            if((i % 1000)==0){                
+                if(i>0)
+                    System.out.println(bigCounter * 1000 + " validaciones realizadas...");
                 bigCounter++;
-                System.out.println(bigCounter * 1000 + " validaciones realizadas...");
             }
-            distances = knn.run(normalizedValues, normalizedTargets[i], uniques);
+            distances = knn.getDistances(normalizedValues, normalizedTargets[i], uniques);
             //System.out.format("%3d: %s", i, " Valores[");
             for(int j=0; j<k; j++){
             //    System.out.format("%3s ", uniques.get(ATTRIBUTE_SIZE-1).get(distances.get(j).targetValue));
@@ -384,6 +386,7 @@ public class KNN {
             //else
                 //System.out.println();
         }
+        System.out.println("Validaciones realizadas en " + (System.currentTimeMillis() - time) /1000 + " segundos!");
         
         System.out.println("\nResumen de resultados del algoritmo");
         System.out.println("Cantidad de aciertos: " + (TARGET_SIZE - countFallos));
